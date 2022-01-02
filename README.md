@@ -2,8 +2,6 @@
 
 Example of a robo-advisor offering portfolio recommendations for retirement.
 
-# Bot Examples
+## Bot Demonstration
 
-<video width="320" height="240" controls>
-  <source src="media/bot_1.mp4" type="video/mp4">
-</video>
+[Video of a bot flow](media/bot_1.mp4)
