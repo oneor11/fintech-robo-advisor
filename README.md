@@ -4,4 +4,6 @@ Example of a robo-advisor offering portfolio recommendations for retirement.
 
 # Bot Examples
 
-![Video of a basic bot](media/bot_1.mp4)
+<video width="320" height="240" controls>
+  <source src="media/bot_1.mp4" type="video/mp4">
+</video>
