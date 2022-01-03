@@ -26,6 +26,60 @@ def build_validation_result(is_valid, violated_slot, message_content):
         "message": {"contentType": "PlainText", "content": message_content},
     }
 
+def parse_float(n):
+    """
+    Securely converts a non-numeric value to float.
+    """
+    try:
+        return float(n)
+    except ValueError:
+        return float("nan")
+
+
+def validate_data(age, investment_amount, intent_request):
+    """
+    Validates the data provided by the user.
+    """
+
+    # Validate that the user is between 0 and 65 years old
+    if age is not None:
+        age = parse_int(age)
+        if not (age > 0 and age < 65):
+            return build_validation_result(
+                False,
+                "age",
+                "You need to have an age between 0 and 64 years to use this service. "
+                "Please provide a different age.",
+            )
+    
+    # Validate the investment amount, it should be > 0
+    if investment_amount is not None:
+        investment_amount = parse_int(investment_amount)
+        if investment_amount < 5000:
+            return build_validation_result(
+                False,
+                "investmentAmount",
+                "An investment of at least $5,000 is requirement. "
+                "Please provide an amount of at least $5,000.",
+            )
+
+    # A True results is returned if age or amount are valid
+    return build_validation_result(True, None, None)
+
+def get_recommendation(risk_level):
+    """
+    Returns a recommended portfolio based on risk level
+    """
+    if risk_level == "None":
+        return "100% bonds (AGG), 0% equities (SPY)"
+    elif risk_level == "Low":
+        return "60% bonds (AGG), 40% equities (SPY)"
+    elif risk_level == "Medium":
+        return "40% bonds (AGG), 60% equities (SPY)"
+    elif risk_level == "High":
+        return "20% bonds (AGG), 80% equities (SPY)"
+    else:
+        return "No portfolio can be recommended at this time."
 
 ### Dialog Actions Helper Functions ###
 def get_slots(intent_request):
@@ -124,9 +178,49 @@ def recommend_portfolio(intent_request):
     risk_level = get_slots(intent_request)["riskLevel"]
     source = intent_request["invocationSource"]
 
-    # YOUR CODE GOES HERE!
+    if source == "DialogCodeHook":
+        # This code performs basic validation on the supplied input slots.
 
+        # Gets all the slots
+        slots = get_slots(intent_request)
 
+        # Validates user's input using the validate_data function
+        validation_result = validate_data(age, investment_amount, intent_request)
+
+        # If the data provided by the user is not valid,
+        # the elicitSlot dialog action is used to re-prompt for the first violation detected.
+        if not validation_result["isValid"]:
+            slots[validation_result["violatedSlot"]] = None  # Cleans invalid slot
+
+            # Returns an elicitSlot dialog to request new data for the invalid slot
+            return elicit_slot(
+                intent_request["sessionAttributes"],
+                intent_request["currentIntent"]["name"],
+                slots,
+                validation_result["violatedSlot"],
+                validation_result["message"],
+            )
+        # Fetch current session attributes
+        output_session_attributes = intent_request["sessionAttributes"]
+
+        # Once all slots are valid, a delegate dialog is returned to Lex to choose the next course of action.
+        return delegate(output_session_attributes, get_slots(intent_request))
+
+    recommendation = get_recommendation(risk_level)
+
+    # Return a message with the recommendation.
+    return close(
+        intent_request["sessionAttributes"],
+        "Fulfilled",
+        {
+            "contentType": "PlainText",
+            "content": """Thank you for your information;
+            your recommended portfolio should consist of {}.
+            """.format(
+                recommendation
+            ),
+        },
+    )
 ### Intents Dispatcher ###
 def dispatch(intent_request):
     """
